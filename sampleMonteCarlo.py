@@ -19,7 +19,6 @@ So result will be in Newtwons
 import numpy as np
 import math
 import random
-import scipy.stats
 from matplotlib import pyplot as plt
 
 from IPython.display import clear_output
@@ -48,14 +47,79 @@ def uniformDistribution(minValue, maxValue):
 
 
 
-def forcedMonteCarlo(numSimulations, lowerBoundThickness, upperBoundThickness, strengthMean, strengthSD):
+
+def monteCarlo(numSimulations, lowerBoundThickness, upperBoundThickness, strengthMean, strengthSD):
 	average = 0
 	
 	for i in range(numSimulations):
 		randomThickness = uniformDistribution(lowerBoundThickness,upperBoundThickness)
 		randomStrength = getNormalDistribution(strengthMean,strengthSD)
-		area = forceCalculation(randomThickness, randomStrength)
-		average = average+area
+		force = forceCalculation(randomThickness, randomStrength)
+		average = average+force
 	return (average / float(numSimulations))
 
-print (forcedMonteCarlo(10000000, 50.0, 51.0, 400.0, 10.0))
+print (monteCarlo(100000, 50.0, 51.0, 400.0, 10.0))
+
+
+
+#What if we want to know the variance?
+#well we can get that too, now that we have the mean, we can rerun it.
+#Variance is the sum of (x-mean)^2/(N-1). We're using N-1 instead of N because our data is a sample instead of the whole population
+#we will have to change our code to store the random thickness and strength for accurate variation.
+#We will also need new methods to have arrays stored
+
+
+def getNDArray(mean, standardD, numSimulations):
+	randomValueArray = np.random.normal(mean, standardD, numSimulations)
+	return randomValueArray
+
+def getUDArray(minValue, maxValue, numSimulations):
+	randomValueArray = np.random.uniform(minValue, maxValue, numSimulations)
+	return randomValueArray
+
+
+def getForceArray(thickness, strength):
+	#area * strength will give the force
+	area = ((math.pi)*(thickness)*(thickness)/4.0) * strength
+	return area
+
+#Variance is sum((x-mean)²)/(N-1)
+
+def monteCarloVariance(numSimulations, lowerBoundThickness, upperBoundThickness, strengthMean, strengthSD):
+	randomThicknessArray = getUDArray(lowerBoundThickness,upperBoundThickness,numSimulations)
+	randomStrengthArray = getNDArray(strengthMean,strengthSD,numSimulations)
+	forceArray = getForceArray(randomThicknessArray, randomStrengthArray)
+	meanOfForce = (np.mean(forceArray))  #What we were calculating before!
+	varianceGrid = ((forceArray - meanOfForce))
+	varianceGridSquared = varianceGrid * varianceGrid
+	sumOfIt = np.sum(varianceGridSquared)
+	variance = sumOfIt/(numSimulations-1) #as we're sampling a populaiton, not the whole
+
+
+	##other way
+	average = 0
+	squareOfAverage =0
+	for i in range(numSimulations):
+		randomThickness = uniformDistribution(lowerBoundThickness,upperBoundThickness)
+		randomStrength = getNormalDistribution(strengthMean,strengthSD)
+		force = forceCalculation(randomThickness, randomStrength)
+		average = average+force
+		squareOfAverage = squareOfAverage + force * force
+
+	squareOfMean = (average/numSimulations)**2
+	meanOfSquares = squareOfAverage/numSimulations
+	methodTwoVariance =  (meanOfSquares - squareOfMean)
+
+	return (variance, methodTwoVariance)
+
+variance = (monteCarloVariance(100000, 50.0, 51.0, 400.0, 10.0))
+
+
+print (variance)
+#Also can get standard deviation which is square root of it
+sd = np.sqrt(variance)
+print (sd)
+
+
+
+
